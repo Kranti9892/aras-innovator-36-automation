@@ -18,9 +18,13 @@ $IISFeatures = @(
     "Web-Static-Content",
     "Web-Http-Errors",
     "Web-Asp-Net45",
-    "Web-Net-Ext45",
-    "Web-AppInit"
+    "Web-Net-Ext45"
 )
+
+# Ensure installer folder exists
+if (!(Test-Path $InstallRoot)) {
+    New-Item -ItemType Directory -Path $InstallRoot -Force
+}
 
 # -------------------------------
 # Helper: File Downloader
@@ -56,11 +60,13 @@ Write-Host "Installing .NET Hosting Bundle..."
 Start-Process -FilePath $DotNetExe -ArgumentList "/quiet", "/norestart" -Wait
 
 # -------------------------------
-# Install VC++ Redistributable
+# Install VC++ Redistributable 2015–2022
 # -------------------------------
 if (!(Test-Path $VcRedistExe)) {
     if (!(Download-File $VcRedistUrl $VcRedistExe)) { exit 1 }
 }
 
 Write-Host "Installing VC++ Redistributable..."
-Start-Process -FilePath $VcRedistExe -ArgumentList "/qu
+Start-Process -FilePath $VcRedistExe -ArgumentList "/quiet", "/norestart" -Wait
+
+Write-Host "=== Prerequisites installation complete ==="
