@@ -1,17 +1,29 @@
 param(
-    [string]$SqlInstance = ".\MSSQLSERVER",
-    [string]$SaPassword
+    [string] $SqlPassword
 )
 
-Write-Host "Creating Innovator DB..."
+Write-Host "=== Configuring SQL ==="
 
-$sqlFile = "C:\temp\create_innovator_db.sql"
+$sql = @"
+IF DB_ID('InnovatorSolutions') IS NULL
+BEGIN
+    CREATE DATABASE InnovatorSolutions;
+END
 
-@"
-CREATE DATABASE Innovator36;
-GO
-"@ | Out-File $sqlFile -Encoding ASCII
+IF NOT EXISTS (SELECT * FROM sys.sql_logins WHERE name = 'innovator')
+BEGIN
+    CREATE LOGIN innovator WITH PASSWORD='$SqlPassword';
+END
 
-Invoke-Expression "sqlcmd -S $SqlInstance -U sa -P `"$SaPassword`" -i $sqlFile"
+USE InnovatorSolutions;
 
-Write-Host "Database created successfully!"
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'innovator')
+BEGIN
+    CREATE USER innovator FOR LOGIN innovator;
+    EXEC sp_addrolemember 'db_owner', 'innovator';
+END
+"@
+
+Invoke-Sqlcmd -Query $sql -ServerInstance "localhost" -ErrorAction Stop
+
+Write-Host "=== SQL Configuration Complete ==="
