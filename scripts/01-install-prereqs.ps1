@@ -1,6 +1,9 @@
 Write-Host "Installing IIS prerequisites..."
 
-Install-WindowsFeature -Name Web-Server,Web-WebServer,Web-Common-Http,Web-Default-Doc,Web-Static-Content,Web-Http-Errors,Web-Asp-Net45,Web-Net-Ext45,Web-ISAPI-Ext,Web-ISAPI-Filter,NET-Framework-45-Core -IncludeManagementTools -Verbose
+dism.exe /Online /Enable-Feature /FeatureName:IIS-WebServerRole /All /Quiet /NoRestart
+dism.exe /Online /Enable-Feature /FeatureName:IIS-WebServer /All /Quiet /NoRestart
+dism.exe /Online /Enable-Feature /FeatureName:IIS-CommonHttpFeatures /All /Quiet /NoRestart
+
 
 Write-Host "Installing .NET 8 Hosting Bundle..."
 
