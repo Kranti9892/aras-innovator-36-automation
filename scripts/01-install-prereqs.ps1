@@ -1,72 +1,74 @@
 Write-Host "=== Installing prerequisites ==="
 
-# -------------------------------
-# Variables
-# -------------------------------
-$InstallRoot = "C:\build\installers"
-$DotNetUrl   = "https://aka.ms/dotnet/8.0/dotnet-hosting-win.exe"
-$DotNetExe   = "$InstallRoot\dotnet-hosting.exe"
+# --- VARIABLES ---
+$VcRedist = "C:\build\installers\vc_redist.x64.exe"
+$DotNetInstaller = "C:\build\installers\dotnet-hosting.exe"
 
-$VcRedistUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
-$VcRedistExe = "$InstallRoot\vc_redist.x64.exe"
+$DotNetUrl = "https://download.visualstudio.microsoft.com/download/pr/57b33f2a-035e-44a5-a12e-26384e82fa64/8cf236503d17b47779fba399a097e68f/dotnet-hosting-8.0.1-win.exe"
 
-$IISFeatures = @(
-    "Web-Server",
-    "Web-WebServer",
-    "Web-Common-Http",
-    "Web-Default-Doc",
-    "Web-Static-Content",
-    "Web-Http-Errors",
-    "Web-Asp-Net45",
-    "Web-Net-Ext45"
-)
+# -----------------------------------------
+# 1️⃣ INSTALL VC++ REDISTRIBUTABLE
+# -----------------------------------------
+Write-Host "Installing VC++ Redistributable..."
 
-# Ensure installer folder exists
-if (!(Test-Path $InstallRoot)) {
-    New-Item -ItemType Directory -Path $InstallRoot -Force
+if (Test-Path $VcRedist) {
+    Write-Host "Found vc_redist.x64.exe — installing..."
+    Start-Process -FilePath $VcRedist -ArgumentList "/quiet", "/norestart" -Wait
+} else {
+    Write-Host "ERROR: vc_redist.x64.exe not found at $VcRedist"
+    exit 1
 }
 
-# -------------------------------
-# Helper: File Downloader
-# -------------------------------
-function Download-File {
-    param($Url, $OutFile)
+# -----------------------------------------
+# 2️⃣ DOWNLOAD & INSTALL .NET HOSTING BUNDLE
+# -----------------------------------------
+Write-Host "Installing .NET Hosting Bundle..."
 
+if (-Not (Test-Path $DotNetInstaller)) {
+    Write-Host "Downloading .NET Hosting Bundle..."
     try {
-        Write-Host "Downloading: $Url"
-        Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing
-        return $true
+        Invoke-WebRequest -Uri $DotNetUrl -OutFile $DotNetInstaller -UseBasicParsing
     }
     catch {
-        Write-Host "ERROR: Failed downloading file $Url"
-        return $false
+        Write-Host "ERROR downloading .NET Hosting bundle"
+        Write-Host $_
+        exit 1
     }
 }
 
-# -------------------------------
-# Install IIS
-# -------------------------------
+Write-Host "Installing .NET Hosting..."
+Start-Process $DotNetInstaller -ArgumentList "/quiet", "/norestart" -Wait
+
+# -----------------------------------------
+# 3️⃣ ENABLE IIS ON WINDOWS 10/11 USING DISM
+# -----------------------------------------
 Write-Host "Installing IIS..."
-Install-WindowsFeature -Name $IISFeatures -IncludeManagementTools -ErrorAction Stop
 
-# -------------------------------
-# Install .NET Hosting Bundle
-# -------------------------------
-if (!(Test-Path $DotNetExe)) {
-    if (!(Download-File $DotNetUrl $DotNetExe)) { exit 1 }
+$IIS = @(
+    "IIS-WebServerRole",
+    "IIS-WebServer",
+    "IIS-CommonHttpFeatures",
+    "IIS-DefaultDocument",
+    "IIS-StaticContent",
+    "IIS-HttpErrors",
+    "IIS-HttpLogging",
+    "IIS-RequestFiltering",
+    "IIS-ASPNET45",
+    "IIS-NetFxExtensibility45"
+)
+
+foreach ($feature in $IIS) {
+    Write-Host "Enabling: $feature"
+    dism.exe /online /enable-feature /featurename:$feature /all /norestart | Out-Null
 }
 
-Write-Host "Installing .NET Hosting Bundle..."
-Start-Process -FilePath $DotNetExe -ArgumentList "/quiet", "/norestart" -Wait
+Write-Host "IIS installation completed."
 
-# -------------------------------
-# Install VC++ Redistributable 2015–2022
-# -------------------------------
-if (!(Test-Path $VcRedistExe)) {
-    if (!(Download-File $VcRedistUrl $VcRedistExe)) { exit 1 }
-}
+# -----------------------------------------
+# 4️⃣ INSTALL ASP.NET CORE MODULE FOR IIS
+# -----------------------------------------
+Write-Host "Installing ASP.NET Core Module (Included with .NET Hosting Bundle)..."
+# Already installed by Hosting Bundle — nothing extra needed.
 
-Write-Host "Installing VC++ Redistributable..."
-Start-Process -FilePath $VcRedistExe -ArgumentList "/quiet", "/norestart" -Wait
-
-Write-Host "=== Prerequisites installation complete ==="
+Write-Host "=== Prerequisite installation completed successfully ==="
+exit 0
