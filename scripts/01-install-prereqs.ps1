@@ -1,24 +1,53 @@
-Write-Host "Installing IIS prerequisites..."
+# ===================================================================
+# Aras Innovator 36 - Prerequisites Installer
+# Works in Jenkins + Windows Server/Windows 10/11
+# ===================================================================
 
-dism.exe /Online /Enable-Feature /FeatureName:IIS-WebServerRole /All /Quiet /NoRestart
-dism.exe /Online /Enable-Feature /FeatureName:IIS-WebServer /All /Quiet /NoRestart
-dism.exe /Online /Enable-Feature /FeatureName:IIS-CommonHttpFeatures /All /Quiet /NoRestart
+Write-Host "=== Aras Innovator 36 - Installing Prerequisites ==="
 
+# -------------------------------------------
+# Fix TLS errors in Jenkins (Microsoft requires TLS 1.2+)
+# -------------------------------------------
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-Write-Host "Installing .NET 8 Hosting Bundle..."
+# -------------------------------------------
+# Create installers folder
+# -------------------------------------------
+$installerRoot = "C:\build\installers"
 
-$dotnetUrl = "https://download.visualstudio.microsoft.com/download/pr/8.0.0/dotnet-hosting-8.0.0-win.exe"
-$localDotnet = "$env:TEMP\dotnet-hosting-8.exe"
+if (!(Test-Path $installerRoot)) {
+    Write-Host "Creating folder: $installerRoot"
+    New-Item -Path $installerRoot -ItemType Directory -Force | Out-Null
+}
 
-Invoke-WebRequest -Uri $dotnetUrl -OutFile $localDotnet
-Start-Process -FilePath $localDotnet -ArgumentList "/quiet","/norestart" -Wait
+# -------------------------------------------
+# 1. Install IIS Web Server
+# -------------------------------------------
+Write-Host "=== Installing IIS Web Server ==="
 
-Write-Host "Installing Visual C++ Redistributable..."
+try {
+    Install-WindowsFeature Web-Server,
+        Web-WebServer,
+        Web-Common-Http,
+        Web-Default-Doc,
+        Web-Static-Content,
+        Web-Http-Errors,
+        Web-Http-Redirect,
+        Web-Health,
+        Web-Http-Logging,
+        Web-Stat-Compression,
+        Web-Mgmt-Tools -IncludeManagementTools
 
-$vcUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
-$localVc = "$env:TEMP\vc_redist_x64.exe"
+    Write-Host "IIS installation completed."
+}
+catch {
+    Write-Host "ERROR installing IIS: $($_.Exception.Message)"
+    exit 1
+}
 
-Invoke-WebRequest -Uri $vcUrl -OutFile $localVc
-Start-Process -FilePath $localVc -ArgumentList "/quiet","/norestart" -Wait
+# -------------------------------------------
+# 2. Download + Install .NET 8 Hosting Bundle
+# -------------------------------------------
+Write-Host "=== Downloading .NET 8 Hosting Bundle ==="
 
-Write-Host "Prerequisites installed successfully!"
+$dotnetUrl = "https://download.visualstudio.microsoft.com/download/pr/89c3a5f2-aa65-4e45-9232-c4aa7
