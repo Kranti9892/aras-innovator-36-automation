@@ -14,7 +14,8 @@ Write-Host "Installing VC++ Redistributable..."
 if (Test-Path $VcRedist) {
     Write-Host "Found vc_redist.x64.exe — installing..."
     Start-Process -FilePath $VcRedist -ArgumentList "/quiet", "/norestart" -Wait
-} else {
+}
+else {
     Write-Host "ERROR: vc_redist.x64.exe not found at $VcRedist"
     exit 1
 }
