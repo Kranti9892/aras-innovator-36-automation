@@ -47,17 +47,16 @@ Write-Host "---------------------------------------------"
 # 3) Install .NET Hosting Bundle
 ############################
 
-$dotnetUrl = "https://download.visualstudio.microsoft.com/download/pr/21e40adf-861b-4ad9-8354-760bc6d2439b/9cfae449f3dcded6e9e4db696cd34f03/dotnet-hosting-8.0.1-win.exe"
+Write-Host "Setting TLS 1.2 for Jenkins..."
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+$dotnetUrl = "https://download.visualstudio.microsoft.com/download/pr/62e72ab3-b57f-4bcb-8da6-426a3a2ea298/8f5cb9184160a95cace0bbd10b191edc/dotnet-hosting-8.0.1-win.exe"
 $localDotnet = "C:\build\installers\dotnet-hosting.exe"
 
 Write-Host "Downloading .NET Hosting Bundle..."
-
 Invoke-WebRequest -Uri $dotnetUrl -OutFile $localDotnet -UseBasicParsing
 
 Write-Host "Installing .NET Hosting Bundle..."
 Start-Process -FilePath $localDotnet -ArgumentList "/quiet" -Wait
 
 Write-Host ".NET Hosting Bundle installed."
-Write-Host "---------------------------------------------"
-
-Write-Host "=== Prerequisite installation completed ==="
