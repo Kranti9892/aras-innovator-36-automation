@@ -1,12 +1,14 @@
-param(
-    [string]$InstallerPath = "C:\build\installers\Aras_36_Setup.exe"
-)
+Write-Host "=== Running Aras Innovator Installer ==="
 
-if (!(Test-Path $InstallerPath)) {
-    throw "Aras 36 Installer not found at $InstallerPath"
+$Installer = "C:\build\installers\ArasInnovator.msi"
+
+if (!(Test-Path $Installer)) {
+    Write-Host "ERROR: Aras installer not found!"
+    exit 1
 }
 
-Write-Host "Launching Aras 36 Installer..."
-Start-Process -FilePath $InstallerPath -Wait
+Start-Process "msiexec.exe" `
+    -ArgumentList "/i `"$Installer`" /quiet /norestart" `
+    -Wait
 
-Write-Host "Aras installer completed."
+Write-Host "=== Aras Innovator Installed Successfully ==="
