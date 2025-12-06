@@ -1,53 +1,47 @@
-# ===================================================================
-# Aras Innovator 36 - Prerequisites Installer
-# Works in Jenkins + Windows Server/Windows 10/11
-# ===================================================================
+Write-Host "`n=== Installing prerequisites ===`n"
 
-Write-Host "=== Aras Innovator 36 - Installing Prerequisites ==="
-
-# -------------------------------------------
-# Fix TLS errors in Jenkins (Microsoft requires TLS 1.2+)
-# -------------------------------------------
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# -------------------------------------------
-# Create installers folder
-# -------------------------------------------
-$installerRoot = "C:\build\installers"
-
-if (!(Test-Path $installerRoot)) {
-    Write-Host "Creating folder: $installerRoot"
-    New-Item -Path $installerRoot -ItemType Directory -Force | Out-Null
+$InstallRoot = "C:\build\installers"
+if (!(Test-Path $InstallRoot)) {
+    New-Item -Path $InstallRoot -ItemType Directory -Force | Out-Null
 }
 
-# -------------------------------------------
-# 1. Install IIS Web Server
-# -------------------------------------------
-Write-Host "=== Installing IIS Web Server ==="
-
-try {
-    Install-WindowsFeature Web-Server,
-        Web-WebServer,
-        Web-Common-Http,
-        Web-Default-Doc,
-        Web-Static-Content,
-        Web-Http-Errors,
-        Web-Http-Redirect,
-        Web-Health,
-        Web-Http-Logging,
-        Web-Stat-Compression,
-        Web-Mgmt-Tools -IncludeManagementTools
-
-    Write-Host "IIS installation completed."
-}
-catch {
-    Write-Host "ERROR installing IIS: $($_.Exception.Message)"
-    exit 1
+function DownloadFile($Url, $OutFile) {
+    Write-Host "Downloading: $Url"
+    try {
+        Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing
+        return $true
+    } catch {
+        Write-Host "ERROR downloading file: $($_.Exception.Message)"
+        return $false
+    }
 }
 
-# -------------------------------------------
-# 2. Download + Install .NET 8 Hosting Bundle
-# -------------------------------------------
-Write-Host "=== Downloading .NET 8 Hosting Bundle ==="
+# IIS
+Write-Host "Installing IIS..."
+dism.exe /Online /Enable-Feature /FeatureName:IIS-WebServerRole /All /Quiet /NoRestart
+dism.exe /Online /Enable-Feature /FeatureName:IIS-WebServer /All /Quiet /NoRestart
 
-$dotnetUrl = "https://download.visualstudio.microsoft.com/download/pr/89c3a5f2-aa65-4e45-9232-c4aa7
+# .NET Hosting Bundle
+$DotNetUrl = "https://download.visualstudio.microsoft.com/download/pr/d4d25f55-a3ee-4ad2-a1b1-2ce63b47d01a/1a4c6c6c3b5f4bb76f1e1a12422bbef4/dotnet-hosting-8.0.1-win.exe"
+$DotNetExe = "$InstallRoot\dotnet-hosting.exe"
+
+if (!(Test-Path $DotNetExe)) {
+    if (!(DownloadFile $DotNetUrl $DotNetExe)) { exit 1 }
+}
+
+Start-Process -FilePath $DotNetExe -ArgumentList "/quiet","/norestart" -Wait
+
+# VC++ Redistributable
+$VcUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+$VcExe = "$InstallRoot\vc_redist.x64.exe"
+
+if (!(Test-Path $VcExe)) {
+    if (!(DownloadFile $VcUrl $VcExe)) { exit 1 }
+}
+
+Start-Process $VcExe -ArgumentList "/quiet","/norestart" -Wait
+
+Write-Host "`n=== Prerequisites installed successfully ==="
+exit 0
