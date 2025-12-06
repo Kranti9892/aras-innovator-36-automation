@@ -1,49 +1,54 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    SA_PASSWORD = credentials('sql-sa-password')
-  }
-
-  stages {
-
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
+    environment {
+        SQL_SA_PASSWORD = credentials('sql-sa-password')
     }
 
-    stage('Install prerequisites') {
-      steps {
-        powershell ".\\scripts\\01-install-prereqs.ps1"
-      }
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install prerequisites') {
+            steps {
+                powershell '''
+                    ./scripts/01-install-prereqs.ps1
+                '''
+            }
+        }
+
+        stage('Configure SQL') {
+            steps {
+                powershell """
+                    ./scripts/02-configure-sql.ps1 -SqlPassword '${SQL_SA_PASSWORD}'
+                """
+            }
+        }
+
+        stage('Run Aras Installer') {
+            steps {
+                powershell '''
+                    ./scripts/03-install-aras.ps1
+                '''
+            }
+        }
+
+        stage('Run ArasUpdate') {
+            steps {
+                powershell '''
+                    ./scripts/04-run-arasupdate.ps1
+                '''
+            }
+        }
     }
 
-    stage('Configure SQL') {
-      steps {
-        powershell ".\\scripts\\02-configure-sql.ps1 -SaPassword '${SA_PASSWORD}'"
-      }
+    post {
+        always {
+            echo "Pipeline finished."
+        }
     }
-
-    stage('Run Aras Installer') {
-      steps {
-        powershell ".\\scripts\\03-install-aras.ps1"
-      }
-    }
-
-    stage('Run ArasUpdate') {
-      steps {
-        powershell ".\\scripts\\04-run-arasupdate.ps1"
-      }
-    }
-  }
-
-  post {
-    success {
-      echo "Aras 36 Installation Pipeline Completed Successfully!"
-    }
-    failure {
-      echo "Pipeline failed. Check logs."
-    }
-  }
 }
