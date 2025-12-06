@@ -1,8 +1,12 @@
-$arasUpdate = "C:\Program Files (x86)\Aras\Aras Update\ArasUpdate.exe"
+Write-Host "=== Running Aras Update ==="
 
-if (!(Test-Path $arasUpdate)) {
-    throw "ArasUpdate tool not found."
+$Updater = "C:\Program Files\Aras Innovator\Innovator\Update.exe"
+
+if (!(Test-Path $Updater)) {
+    Write-Host "ERROR: Aras Update.exe not found!"
+    exit 1
 }
 
-Start-Process -FilePath $arasUpdate -Wait
-Write-Host "ArasUpdate execution completed."
+Start-Process -FilePath $Updater -ArgumentList "/s" -Wait
+
+Write-Host "=== Aras Update Completed ==="
