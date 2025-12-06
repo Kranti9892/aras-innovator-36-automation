@@ -1,0 +1,2 @@
+CREATE DATABASE Innovator36;
+GO
